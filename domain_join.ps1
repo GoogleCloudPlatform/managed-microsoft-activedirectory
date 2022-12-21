@@ -217,6 +217,8 @@ catch {
   }
 }
 finally {
-    # delete the domain join file
-  Remove-Item -Path $domainJoinFile -Force
+  # delete the domain join file
+  if (Test-Path -Path $domainJoinFile) {
+    Remove-Item -Path $domainJoinFile -Force
+  }
 }
