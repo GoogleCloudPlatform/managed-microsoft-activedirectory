@@ -167,9 +167,13 @@ function Perform-DomainJoin {
     ouName = $ouName
     vmIdToken = $fullTokenResponse
   }
+  $forceFlag = Get-Metadata "$attributeURL/$forceKey"
+  if ($forceFlag -eq $true) {
+      $body.force = $true
+  }
 
   $bodyJson = $body|ConvertTo-Json
-  $domainJoinUrl = "https://$endpoint/v1beta1/$domainName" + ':domainJoinMachine'
+  $domainJoinUrl = "https://$endpoint/v1/$domainName" + ':domainJoinMachine'
   $accessTokenResponse = Get-Metadata $tokenUrl
 
   $accessToken = $accessTokenResponse.access_token
