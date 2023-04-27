@@ -2,6 +2,7 @@ $attributeURL = 'http://metadata.google.internal/computeMetadata/v1/instance/att
 $guestAttributesURL = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes'
 $guestAttributesKey = 'enable-guest-attributes'
 $domainKey = 'managed-ad-domain'
+$forceKey = 'managed-ad-force'
 $ouNameKey = 'managed-ad-ou-name'
 $failureStopKey = 'managed-ad-domain-join-failure-stop'
 $domainJoinStatus = 'managed-ad/domain-join-status'
