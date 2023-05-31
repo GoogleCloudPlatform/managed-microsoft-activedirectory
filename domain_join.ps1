@@ -149,7 +149,7 @@ function Write-DjoinStatus {
 }
 
 function Perform-DomainJoin {
-  Write-DjoinStatus
+  Write-DjoinStatus -djoinStatus '' -djoinFailureMessage ''
   $domainName = Get-Metadata "$attributeURL/$domainKey"
   $fullTokenResponse = Get-Metadata $fullTokenUrl
   # Set default ou name as empty string
