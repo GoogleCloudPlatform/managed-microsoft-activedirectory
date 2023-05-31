@@ -135,9 +135,6 @@ function Write-DjoinStatus {
     Write-Output 'An error occurred. Unable to write to guest attributes'
     Write-Output $_.Exception
   }
-  if ([string]::IsNullOrEmpty($djoinFailureMessage)) {
-    return
-  }
   try {
     $value = Write-GuestAttribute $domainJoinFailureMessage $djoinFailureMessage
     Write-Output 'Successfully wrote the domain join failure message to guest attributes'
@@ -162,11 +159,10 @@ function Perform-DomainJoin {
   }
 
   $hostName = hostname
-
   $body = @{
-    domain = $domainName
-    ouName = $ouName
-    vmIdToken = $fullTokenResponse
+      domain = $domainName
+      ouName = $ouName
+      vmIdToken = $fullTokenResponse
   }
   $forceFlag = Get-Metadata "$attributeURL/$forceKey"
   if ($forceFlag -eq $true) {
