@@ -77,7 +77,7 @@ function Write-GuestAttribute {
   param (
     [Parameter(Mandatory=$true)]
     [String]$key,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [String]$message
   )
   <#
@@ -111,7 +111,7 @@ function Write-DjoinStatus {
         djoinFailureMessage is the error message seen when domain join fails.
   #>
   param (
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$false)]
     [String]$djoinStatus,
     [Parameter(Mandatory=$false)]
     [String]$djoinFailureMessage
@@ -149,6 +149,7 @@ function Write-DjoinStatus {
 }
 
 function Perform-DomainJoin {
+  Write-DjoinStatus
   $domainName = Get-Metadata "$attributeURL/$domainKey"
   $fullTokenResponse = Get-Metadata $fullTokenUrl
   # Set default ou name as empty string
