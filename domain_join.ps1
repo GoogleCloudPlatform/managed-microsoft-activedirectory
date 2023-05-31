@@ -191,7 +191,7 @@ function Perform-DomainJoin {
   }
 
   Write-Output 'Domain join finished, restarting'
-  Write-DjoinStatus -djoinStatus 'success' -djoinFailureMessage ''
+  Write-DjoinStatus -djoinStatus 'success' -djoinFailureMessage 'nil'
 
   Restart-Computer
 }
