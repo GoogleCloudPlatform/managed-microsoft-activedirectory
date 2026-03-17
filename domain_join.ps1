@@ -2,6 +2,7 @@ $attributeURL = 'http://metadata.google.internal/computeMetadata/v1/instance/att
 $guestAttributesURL = 'http://metadata.google.internal/computeMetadata/v1/instance/guest-attributes'
 $guestAttributesKey = 'enable-guest-attributes'
 $domainKey = 'managed-ad-domain'
+$forceKey = 'managed-ad-force'
 $ouNameKey = 'managed-ad-ou-name'
 $failureStopKey = 'managed-ad-domain-join-failure-stop'
 $domainJoinStatus = 'managed-ad/domain-join-status'
@@ -9,7 +10,8 @@ $domainJoinFailureMessage = 'managed-ad/domain-join-failure-message'
 $domainJoinFile = "$home\blob.txt"
 $retryCount = 10
 $endpoint='managedidentities.googleapis.com'
-
+$tokenUrl = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token'
+$fullTokenUrl = "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=$endpoint&format=full"
 
 function Write-DjoinBlob {
     <#
@@ -97,7 +99,8 @@ function Write-GuestAttribute {
   }
 }
 
-function Write-Attributes {
+
+function Write-DjoinStatus {
   <#
     .SYNOPSIS
         Write-Attributes writes the domain join status as guest attributes if the guest attributes
@@ -112,7 +115,6 @@ function Write-Attributes {
     [String]$djoinStatus,
     [Parameter(Mandatory=$false)]
     [String]$djoinFailureMessage
-
   )
   try {
     $enabled = Get-Metadata "$attributeURL/$guestAttributesKey"
@@ -126,7 +128,7 @@ function Write-Attributes {
     return
   }
   try {
-    $value = Write-GuestAttribute $domainJoinStatus 'success'
+    $value = Write-GuestAttribute $domainJoinStatus $djoinStatus
     Write-Output 'Successfully wrote the domain join status to guest attributes'
   }
   catch {
@@ -134,7 +136,7 @@ function Write-Attributes {
     Write-Output $_.Exception
   }
   try {
-    $value = Write-GuestAttribute $domainJoinFailureMessage 'failure'
+    $value = Write-GuestAttribute $domainJoinFailureMessage $djoinFailureMessage
     Write-Output 'Successfully wrote the domain join failure message to guest attributes'
   }
   catch {
@@ -145,11 +147,8 @@ function Write-Attributes {
 
 function Perform-DomainJoin {
   $domainName = Get-Metadata "$attributeURL/$domainKey"
-  $fullTokenUrl = "http://metadata/computeMetadata/v1/instance/service-accounts/default/identity?audience=$endpoint&format=full"
-
   $fullTokenResponse = Get-Metadata $fullTokenUrl
-
-  # Set default ou name
+  # Set default ou name as empty string
   $ouName = ''
   try {
    $ouName = (Get-Metadata "$attributeURL/$ouNameKey")
@@ -160,16 +159,18 @@ function Perform-DomainJoin {
   }
 
   $hostName = hostname
-
   $body = @{
-    domain = $domainName
-    ouName = $ouName
-    vmIdToken = $fullTokenResponse
+      domain = $domainName
+      ouName = $ouName
+      vmIdToken = $fullTokenResponse
+  }
+  $forceFlag = Get-Metadata "$attributeURL/$forceKey"
+  if ($forceFlag -eq $true) {
+      $body.force = $true
   }
 
   $bodyJson = $body|ConvertTo-Json
-  $domainJoinUrl = "https://$endpoint/v1beta1/$domainName" + ':domainJoinMachine'
-  $tokenUrl = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token'
+  $domainJoinUrl = "https://$endpoint/v1/$domainName" + ':domainJoinMachine'
   $accessTokenResponse = Get-Metadata $tokenUrl
 
   $accessToken = $accessTokenResponse.access_token
@@ -190,7 +191,7 @@ function Perform-DomainJoin {
   }
 
   Write-Output 'Domain join finished, restarting'
-  Write-Attributes -djoinStatus 'success' -djoinFailureMessage ''
+  Write-DjoinStatus -djoinStatus 'success' -djoinFailureMessage 'nil'
 
   Restart-Computer
 }
@@ -204,8 +205,8 @@ try {
   Perform-DomainJoin
 }
 catch {
-  Write-Output "An error occurred while performing domain join: $_"
-  Write-Attributes -djoinStatus 'failure' -djoinFailureMessage $_.Exception.Message
+  Write-Output "Domain join failed. An error occurred while performing domain join: $_"
+  Write-DjoinStatus -djoinStatus 'failure' -djoinFailureMessage $_.Exception.Message
   try {
     $stopVMFlag = Get-Metadata "$attributeURL/$failureStopKey"
     if ($stopVMFlag -eq $true) {
@@ -217,8 +218,8 @@ catch {
   }
 }
 finally {
-  # delete the domain join file
-  if (Test-Path -Path $domainJoinFile) {
+  $exists = Test-Path $domainJoinFile
+  if ($exists -eq $true) {
     Remove-Item -Path $domainJoinFile -Force
   }
 }
